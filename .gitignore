@@ -1,0 +1,49 @@
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ML artifacts
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.onnx
+*.safetensors
+wandb/
+runs/
+mlruns/
+lightning_logs/
+checkpoints/
+
+# Data
+*.csv
+*.parquet
+*.pkl
+*.npy
+*.npz
+data/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
