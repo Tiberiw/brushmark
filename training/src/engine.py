@@ -1,5 +1,6 @@
 from tqdm import tqdm
 import torch
+import torch.nn as nn
 from metrics import get_metrics_from_cm, log_per_class_metrics, plot_performance, plot_top_confusions, plot_top_losses
 from pathlib import Path
 
@@ -8,6 +9,10 @@ def train_step(model: torch.nn.Module,
                loss_fn: torch.nn.Module,
                optimizer: torch.optim.Optimizer,
                device: torch.device) -> list[float]:
+    """Function for training the model for one epoch on device. The data is sampled fomr the dataloader.
+    The optimization is done with respect to the loss_fn and the weights are updated by the optimizer.
+        Returns: list[float] - losses per batch
+    """
     train_losses = []
     model.train()
     for batch, targets in tqdm(dataloader):
@@ -26,21 +31,25 @@ def train_step(model: torch.nn.Module,
 def validate_step(model: torch.nn.Module,
                   dataloader: torch.utils.data.DataLoader,
                   loss_fn: torch.nn.Module,
-                  loss_fn_sample: torch.nn.Module,
                   device: torch.device,
                   n_classes: int,
                   idx_to_class: dict[int, str]) -> tuple[float, torch.Tensor, dict]:
+    """Function for validating the model the validation set after one epoch of training.
+        Returns: tuple[float, torch.tensor, dict] - returns performance metrics on the validation set
+        such as the everage error for the validation set, the confusion matrix and top losses
+    """
     val_losses = []
     cm = torch.zeros((n_classes, n_classes), dtype=torch.long, device=device)
     model.eval()
     all_metrics = []
     all_images = []
+    loss_fn_sample = nn.CrossEntropyLoss(reduction='none') # Used for extracting top losses per sample
     
     with torch.no_grad():
         for batch, targets in tqdm(dataloader):
             batch = batch.to(device, non_blocking=True)
             targets = targets.to(device, non_blocking=True)
-            
+
             outputs = model(batch)
             loss = loss_fn(outputs, targets)
             val_losses.append(loss.item())
@@ -76,18 +85,20 @@ def train(epochs: int,
           model: torch.nn.Module,
           optimizer: torch.optim.Optimizer,
           loss_fn: torch.nn.Module,
-          loss_fn_sample: torch.nn.Module,
           device: torch.device,
           n_classes: int,
           idx_to_class: dict[int, str],
           current_run_folder: Path,
           scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
           save: dict | None = None) -> None:
+    """Main training loop function. Trains the model for epoch epochs. For each epoch. Calls the trainig
+    and validation functions. At the end display results
+    """
     all_train_losses, all_valid_losses, F1s, accs = [], [], [], []
     for epoch in range(epochs):
         train_losses = train_step(model, train_dataloader, loss_fn, optimizer, device)
         valid_loss, cm, top_losses = validate_step(
-            model, valid_dataloader, loss_fn, loss_fn_sample, device, n_classes, idx_to_class
+            model, valid_dataloader, loss_fn, device, n_classes, idx_to_class
         )
         if scheduler: scheduler.step()
         
@@ -96,12 +107,14 @@ def train(epochs: int,
         macro_avg_F1 = torch.mean(f1s).item()
         weighted_F1 = torch.sum(f1s * counts_per_class).item() / cm.sum().item()
         train_loss = torch.mean(torch.tensor(train_losses)).item()
-        valid_acc = (cm.diag().sum() / cm.sum()).item() 
-        print(f"Epoch {epoch} - Train loss: {train_loss:.4f} | Valid loss: {valid_loss:.4f} | Valid Accuracy: {valid_acc:.4f} | Macro-Avg F1: {macro_avg_F1:.4f} | Weighted F1: {weighted_F1:.4f}")    
+        valid_acc = (cm.diag().sum() / cm.sum()).item()
+        print(f"Epoch {epoch} - Train loss: {train_loss:.4f} | Valid loss: {valid_loss:.4f} | Valid Accuracy: {valid_acc:.4f} | Macro-Avg F1: {macro_avg_F1:.4f} | Weighted F1: {weighted_F1:.4f}")
+        if scheduler:
+            print(F"Learning rate scheduler: {scheduler.get_last_lr()}")
 
         if save and macro_avg_F1 > save['mx']:
             save['mx'] = macro_avg_F1
-            save_path = f"model-params-{epoch}.pt"
+            save_path = current_run_folder / "best_model.pt"
             save['path'] = save_path
             torch.save(model.state_dict(), save_path)
             print(f"Saved model on epoch: {epoch}, with F1: {macro_avg_F1}, at: {save_path}")
