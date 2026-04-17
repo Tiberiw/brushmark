@@ -2,7 +2,6 @@ from torch.utils.data import Dataset
 from pathlib import Path
 from PIL import Image
 import unicodedata
-import torch
 
 from torchvision import transforms
 
