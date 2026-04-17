@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 from pathlib import Path
 from PIL import Image
 import unicodedata
+import torch
 
 from torchvision import transforms
 
@@ -66,7 +67,7 @@ class PaintersDataset(Dataset):
     def _normalize(self, s: str) -> str:
         return unicodedata.normalize('NFC', s)
 
-def create_dataloaders(path: Path, bs=32, num_workers=4):
+def create_dataloaders(path: Path, pin_memory: bool, bs: int = 32, num_workers: int = 4):
     """Create train and validation dataloaders
         Args: 
             path: str - path to the data folder
@@ -132,7 +133,7 @@ def create_dataloaders(path: Path, bs=32, num_workers=4):
         train_dataset,
         batch_size=bs,
         sampler=train_sampler,
-        pin_memory=True,
+        pin_memory=pin_memory,
         num_workers=num_workers
     )
 
@@ -140,7 +141,7 @@ def create_dataloaders(path: Path, bs=32, num_workers=4):
         valid_dataset,
         batch_size=bs,
         shuffle=False,
-        pin_memory=True,
+        pin_memory=pin_memory,
         num_workers=num_workers
     )
 

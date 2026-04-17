@@ -1,11 +1,16 @@
-# Ensure we have the data available
 import kagglehub
 import os
 import shutil
 from pathlib import Path
 
 def setup_data(copy_to_current_dir=False) -> Path:
-    """Function to ensure the dataset is available. If not, download from kaggle"""
+    """Function for ensuring the data folder is available. If missing, download from kaggle.
+        Args:
+            copy_to_current_dir: bool - if data is not available, after downloading, ensure the
+            folder with the images is copied to the current working directory (instead of .cache)
+        
+        Returns: Path to the dataset root directory
+    """
 
     if os.environ.get('KAGGLE_KERNEL_RUN_TYPE', ''): # is on kaggle
         return Path('/kaggle/input/datasets/ikarus777/best-artworks-of-all-time')
@@ -20,6 +25,6 @@ def setup_data(copy_to_current_dir=False) -> Path:
 
     if not copy_to_current_dir:
         return Path(path)
-    shutil.copytree(f'{path}/images', image_path)
+    shutil.copytree(Path(path)/"images", image_path)
     print(f"Dataset copied to: {image_path}")
     return image_path.parent
