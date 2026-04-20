@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 from pathlib import Path
 from PIL import Image
 import unicodedata
-import torch
+import torchvision
 
 from torchvision import transforms
 
@@ -75,7 +75,6 @@ def create_dataloaders(path: Path, pin_memory: bool, bs: int = 32, num_workers: 
         Returns:
             A tuple containing the train and validation dataloaders
     """
-
     train_transforms = transforms.Compose([
         transforms.RandomResizedCrop(448, scale=(0.2, 1.0)),
         transforms.RandomHorizontalFlip(),
@@ -88,6 +87,9 @@ def create_dataloaders(path: Path, pin_memory: bool, bs: int = 32, num_workers: 
         ),
         transforms.RandomErasing(p=0.3)
     ])
+
+    # Here we need to change the parameters of this train_transforms
+    # SO change the schale (x, 1.0), with or without RandomHorizontalFliup, Change RandomRotation
 
     val_transforms = transforms.Compose([
         transforms.Resize(540),
