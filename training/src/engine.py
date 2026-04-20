@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from metrics import get_metrics_from_cm, log_per_class_metrics, plot_performance, plot_top_confusions, plot_top_losses
 from pathlib import Path
+from torch.utils.tensorboard import SummaryWriter
 
 def train_step(model: torch.nn.Module, 
                dataloader: torch.utils.data.DataLoader,
@@ -89,6 +90,7 @@ def train(epochs: int,
           n_classes: int,
           idx_to_class: dict[int, str],
           current_run_folder: Path,
+          writer: SummaryWriter | None = None,
           scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
           save: dict | None = None) -> None:
     """Main training loop function. Trains the model for epoch epochs. For each epoch. Calls the trainig
@@ -109,6 +111,12 @@ def train(epochs: int,
         train_loss = torch.mean(torch.tensor(train_losses)).item()
         valid_acc = (cm.diag().sum() / cm.sum()).item()
         print(f"Epoch {epoch} - Train loss: {train_loss:.4f} | Valid loss: {valid_loss:.4f} | Valid Accuracy: {valid_acc:.4f} | Macro-Avg F1: {macro_avg_F1:.4f} | Weighted F1: {weighted_F1:.4f}")
+        if writer:
+            writer.add_scalar("Loss/Training Loss", train_loss, epoch)
+            writer.add_scalar("Loss/Validation Loss", valid_loss, epoch)
+            writer.add_scalar("Validation/Accuracy", valid_acc, epoch)
+            writer.add_scalar("Validation/F1 Score", macro_avg_F1, epoch)
+
         if scheduler:
             print(F"Learning rate scheduler: {scheduler.get_last_lr()}")
 
