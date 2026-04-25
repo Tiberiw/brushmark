@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torchvision.models import resnet18, resnet50, ResNet18_Weights, ResNet50_Weights
 from torchvision.models.resnet import ResNet
+from interfaces import Model
 
 def get_resnet50_model(n_classes: int, device: torch.device, dropout: float = 0.5):
     """Return a ResNet50 with frozen backbone and a trainable classification head."""
@@ -33,11 +34,12 @@ def get_resnet18_model(n_classes: int, device: torch.device, dropout: float = 0.
     return model
 
 def get_resnet_model(
-        model: str,
-        dropout: float,
+        cfg: Model,
         n_classes: int,
         device: torch.device
         ) -> ResNet:
+    model = cfg.name
+    dropout = cfg.dropout
     if model == "resnet50":
         return get_resnet50_model(n_classes, device, dropout)
     if model == "resnet18":
