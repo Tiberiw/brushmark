@@ -4,29 +4,55 @@ import torch.nn as nn
 from metrics import get_metrics_from_cm, log_per_class_metrics, plot_performance, plot_top_confusions, plot_top_losses
 from pathlib import Path
 from torch.utils.tensorboard import SummaryWriter
+from contextlib import nullcontext
+
+def log_profiler_trace(prof: torch.profiler.profile):
+    prof.export_chrome_trace(f"trace_{prof.step_num}.json")
 
 def train_step(model: torch.nn.Module, 
                dataloader: torch.utils.data.DataLoader,
                loss_fn: torch.nn.Module,
                optimizer: torch.optim.Optimizer,
-               device: torch.device) -> list[float]:
+               device: torch.device,
+               use_profiler: bool = False) -> list[float]:
     """Function for training the model for one epoch on device. The data is sampled fomr the dataloader.
     The optimization is done with respect to the loss_fn and the weights are updated by the optimizer.
         Returns: list[float] - losses per batch
     """
     train_losses = []
     model.train()
-    for batch, targets in tqdm(dataloader):
-        batch = batch.to(device, non_blocking=True)
-        targets = targets.to(device, non_blocking=True)
-        
-        preds = model(batch)
-        loss = loss_fn(preds, targets)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        
-        train_losses.append(loss.item())
+
+    profiler_context = (
+        torch.profiler.profile(
+            schedule=torch.profiler.schedule(
+                skip_first=10, # skip dataloader warmup, lr scheduler weirdness
+                wait=1, # run the first step without profiler to intilize cuda kernels
+                warmup=1, # run one stop with the scheduler on, without logging (profiler overhead)
+                active=5,
+                repeat=1
+            ),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler("./training/outputs/profiler/resnet50"),
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True
+        )
+        if use_profiler else nullcontext()
+    )
+
+    with profiler_context as profiler:
+        for step, (batch, targets) in enumerate(tqdm(dataloader)):
+            batch = batch.to(device, non_blocking=True)
+            targets = targets.to(device, non_blocking=True)
+            
+            preds = model(batch)
+            loss = loss_fn(preds, targets)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+            train_losses.append(loss.item())
+            if profiler is not None:
+                profiler.step()
     return train_losses
 
 def validate_step(model: torch.nn.Module,
@@ -92,13 +118,13 @@ def train(epochs: int,
           current_run_folder: Path,
           writer: SummaryWriter | None = None,
           scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
-          save: dict | None = None) -> None:
+          save: bool = False) -> None:
     """Main training loop function. Trains the model for epoch epochs. For each epoch. Calls the trainig
     and validation functions. At the end display results
     """
     all_train_losses, all_valid_losses, F1s, accs = [], [], [], []
     for epoch in range(epochs):
-        train_losses = train_step(model, train_dataloader, loss_fn, optimizer, device)
+        train_losses = train_step(model, train_dataloader, loss_fn, optimizer, device, epoch == 0)
         valid_loss, cm, top_losses = validate_step(
             model, valid_dataloader, loss_fn, device, n_classes, idx_to_class
         )
@@ -119,11 +145,11 @@ def train(epochs: int,
 
         if scheduler:
             print(F"Learning rate scheduler: {scheduler.get_last_lr()}")
-
-        if save and macro_avg_F1 > save['mx']:
-            save['mx'] = macro_avg_F1
+        
+        f1_max = 0.75
+        if save and macro_avg_F1 > f1_max:
+            f1_max = macro_avg_F1
             save_path = current_run_folder / "best_model.pt"
-            save['path'] = save_path
             torch.save(model.state_dict(), save_path)
             print(f"Saved model on epoch: {epoch}, with F1: {macro_avg_F1}, at: {save_path}")
         

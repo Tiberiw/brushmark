@@ -1,0 +1,34 @@
+hydra:
+  run:
+    dir: ./training/outputs/${experiment_name}/${model.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+experiment_name: Loaders
+warmup:
+  enabled: True
+  epochs: 3
+  optimizer:
+    name: AdamW
+    weight_decay: 0.01
+    param_groups:
+      - layer_name: fc
+        lr: 2e-3
+training:
+  epochs: 25
+  batch_size: 32
+  num_workers: 4
+  loss_fn:
+    label_smoothing: 0.1
+    sampling_weight_scale: 0.5
+  optimizer:
+    name: AdamW
+    weight_decay: 0.01
+    param_groups:
+      - layer_name: layer3
+        lr: 1e-4
+      - layer_name: layer4
+        lr: 1e-4
+      - layer_name: fc
+        lr: 1e-3
+model:
+  name: resnet50
+  dropout: 0.5

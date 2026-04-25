@@ -23,6 +23,7 @@ runs/
 mlruns/
 lightning_logs/
 checkpoints/
+outputs/
 
 # Data
 *.csv
