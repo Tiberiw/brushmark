@@ -138,10 +138,12 @@ def train(epochs: int,
         valid_acc = (cm.diag().sum() / cm.sum()).item()
         print(f"Epoch {epoch} - Train loss: {train_loss:.4f} | Valid loss: {valid_loss:.4f} | Valid Accuracy: {valid_acc:.4f} | Macro-Avg F1: {macro_avg_F1:.4f} | Weighted F1: {weighted_F1:.4f}")
         if writer:
-            writer.add_scalar("Loss/Training Loss", train_loss, epoch)
-            writer.add_scalar("Loss/Validation Loss", valid_loss, epoch)
-            writer.add_scalar("Validation/Accuracy", valid_acc, epoch)
-            writer.add_scalar("Validation/F1 Score", macro_avg_F1, epoch)
+            for batch_idx, batch_loss in enumerate(train_losses):
+                writer.add_scalar("Batch/train_loss", batch_loss, epoch * len(train_dataloader) + batch_idx)
+            writer.add_scalar("Epoch/train_loss", train_loss, epoch)
+            writer.add_scalar("Epoch/val_loss", valid_loss, epoch)
+            writer.add_scalar("Epoch/val_acc", valid_acc, epoch)
+            writer.add_scalar("Epoch/val_f1", macro_avg_F1, epoch)
 
         if scheduler:
             print(F"Learning rate scheduler: {scheduler.get_last_lr()}")
