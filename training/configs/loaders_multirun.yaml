@@ -1,13 +1,19 @@
 hydra:
+  sweeper:
+    params:
+      train_transforms@data.train_transforms: original,base,no_color_jitter,no_random_erasing,no_random_horizontal_flip,no_random_resized_crop,no_random_rotation,random_erasing,random_horizontal_flip,random_resized_crop,random_rotation,color_jitter
   run:
     dir: ./training/outputs/${experiment_name}/${model.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: ./training/outputs_multi/${experiment_name}/${model.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${choice:train_transforms@data.train_transforms}
 
 defaults:
-  - train_transforms: default
-  - val_transforms: default
+  - train_transforms@data.train_transforms: default
+  - val_transforms@data.val_transforms: default
   - _self_
 
-experiment_name: Loaders
+experiment_name: train_loaders_aug
 warmup:
   enabled: True
   epochs: 3

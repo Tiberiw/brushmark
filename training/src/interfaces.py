@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Any
 
 @dataclass
 class ParamGroup:
@@ -6,8 +7,7 @@ class ParamGroup:
     lr: float
 
 @dataclass(frozen=True)
-class Optimizer:
-    name: str
+class OptimizerConfig:
     weight_decay: float
     param_groups: list[ParamGroup]
 
@@ -15,23 +15,39 @@ class Optimizer:
 class Warmup:
     enabled: bool
     epochs: int
-    optimizer: Optimizer
+    optimizer: OptimizerConfig
 
 @dataclass
-class LossFunction:
+class LossFunctionConfig:
     label_smoothing: float
     sampling_weight_scale: float
 
 @dataclass
 class Training:
     epochs: int
-    batch_size: int
-    loss_fn: LossFunction
-    num_workers: int
-    optimizer: Optimizer
+    loss_fn: LossFunctionConfig
+    optimizer: OptimizerConfig
 
 @dataclass
-class Model:
+class TransformComposeConfig:
+    _target_: str = "torchvision.transforms.Compose"
+    transforms: list[Any] = field(default_factory=list)
+
+@dataclass
+class LoaderConfig:
+    batch_size: int
+    num_workers: int
+
+@dataclass
+class DataConfig:
+    n_classes: int
+    valid_size: float
+    dataloader: LoaderConfig
+    train_transforms: TransformComposeConfig
+    val_transforms: TransformComposeConfig
+
+@dataclass
+class ModelConfig:
     name: str
     dropout: float
 
@@ -40,4 +56,5 @@ class Configuration:
     experiment_name: str
     warmup: Warmup
     training: Training
-    model: Model
+    model: ModelConfig
+    data: DataConfig
