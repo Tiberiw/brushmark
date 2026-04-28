@@ -2,6 +2,9 @@ import kagglehub
 import os
 import shutil
 from pathlib import Path
+import logging
+
+log = logging.getLogger(__name__)
 
 def setup_data(copy_to_current_dir=False) -> Path:
     """Function for ensuring the data folder is available. If missing, download from kaggle.
@@ -17,14 +20,14 @@ def setup_data(copy_to_current_dir=False) -> Path:
     
     image_path = Path("training")/"data"/"images"
     if image_path.is_dir():
-        print(f"{image_path} path exists")
+        log.info(f"{image_path} path exists")
         return image_path.parent
     
     path = kagglehub.dataset_download("ikarus777/best-artworks-of-all-time")
-    print(f"Dataset files successfully downloaded to: {path}")
+    log.info(f"Dataset files successfully downloaded to: {path}")
 
     if not copy_to_current_dir:
         return Path(path)
     shutil.copytree(Path(path)/"images", image_path)
-    print(f"Dataset copied to: {image_path}")
+    log.info(f"Dataset copied to: {image_path}")
     return image_path.parent

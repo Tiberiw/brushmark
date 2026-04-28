@@ -5,6 +5,9 @@ from metrics import get_metrics_from_cm, log_per_class_metrics, plot_performance
 from pathlib import Path
 from torch.utils.tensorboard import SummaryWriter
 from contextlib import nullcontext
+import logging
+
+log = logging.getLogger(__name__)
 
 def log_profiler_trace(prof: torch.profiler.profile):
     prof.export_chrome_trace(f"trace_{prof.step_num}.json")
@@ -136,7 +139,7 @@ def train(epochs: int,
         weighted_F1 = torch.sum(f1s * counts_per_class).item() / cm.sum().item()
         train_loss = torch.mean(torch.tensor(train_losses)).item()
         valid_acc = (cm.diag().sum() / cm.sum()).item()
-        print(f"Epoch {epoch} - Train loss: {train_loss:.4f} | Valid loss: {valid_loss:.4f} | Valid Accuracy: {valid_acc:.4f} | Macro-Avg F1: {macro_avg_F1:.4f} | Weighted F1: {weighted_F1:.4f}")
+        log.info(f"Epoch {epoch} - Train loss: {train_loss:.4f} | Valid loss: {valid_loss:.4f} | Valid Accuracy: {valid_acc:.4f} | Macro-Avg F1: {macro_avg_F1:.4f} | Weighted F1: {weighted_F1:.4f}")
         if writer:
             for batch_idx, batch_loss in enumerate(train_losses):
                 writer.add_scalar("Batch/train_loss", batch_loss, epoch * len(train_dataloader) + batch_idx)
@@ -146,14 +149,14 @@ def train(epochs: int,
             writer.add_scalar("Epoch/val_f1", macro_avg_F1, epoch)
 
         if scheduler:
-            print(F"Learning rate scheduler: {scheduler.get_last_lr()}")
+            log.info(F"Learning rate scheduler: {scheduler.get_last_lr()}")
         
         f1_max = 0.75
         if save and macro_avg_F1 > f1_max:
             f1_max = macro_avg_F1
             save_path = current_run_folder / "best_model.pt"
             torch.save(model.state_dict(), save_path)
-            print(f"Saved model on epoch: {epoch}, with F1: {macro_avg_F1}, at: {save_path}")
+            log.info(f"Saved model on epoch: {epoch}, with F1: {macro_avg_F1}, at: {save_path}")
         
         if epoch == epochs - 1:
             log_per_class_metrics(cm, idx_to_class)
