@@ -71,7 +71,7 @@ OmegaConf.register_new_resolver(
 
 @hydra.main(version_base="1.2", config_path="../configs", config_name="loaders_multirun")
 def main(cfg: Configuration):
-    set_seeds()
+    set_seeds(cfg.seed)
     current_run_folder = Path(HydraConfig.get().runtime.output_dir)
     writer = SummaryWriter(log_dir=str(current_run_folder/"tb"))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

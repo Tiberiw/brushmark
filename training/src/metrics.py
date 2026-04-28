@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 from utils import ema_smoothing
 import torch
 from pathlib import Path
+import logging
+
+log = logging.getLogger(__name__)
 
 def get_metrics_from_cm(cm: torch.Tensor) -> list[tuple[float, float, float]]:
     """ Function for extracting the Precision, Recall and F1 score from confusion matrix """
@@ -23,7 +26,7 @@ def log_per_class_metrics(cm: torch.Tensor, idx_to_class: dict[int, str]) -> Non
     order = torch.argsort(torch.tensor(metrics)[:, 0]).tolist()
     for idx in order:
         F1, Precision, Recall = metrics[idx]
-        print(f"{idx_to_class[idx]}: F1={F1:.4f}, Precision={Precision:.4f}, Recall={Recall:.4f}")
+        log.info(f"{idx_to_class[idx]}: F1={F1:.4f}, Precision={Precision:.4f}, Recall={Recall:.4f}")
 
 def plot_top_confusions(cm: torch.Tensor,
                         idx_to_class: dict[int, str],

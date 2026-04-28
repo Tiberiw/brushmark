@@ -41,6 +41,8 @@ class LoaderConfig:
 @dataclass
 class DataConfig:
     n_classes: int
+    split_seed: int
+    train_perc: float
     valid_size: float
     dataloader: LoaderConfig
     train_transforms: TransformComposeConfig
@@ -54,6 +56,7 @@ class ModelConfig:
 @dataclass
 class Configuration:
     experiment_name: str
+    seed: int
     warmup: Warmup
     training: Training
     model: ModelConfig

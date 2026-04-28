@@ -3,11 +3,12 @@ hydra:
     dir: ./training/outputs/${experiment_name}/${model.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
 
 defaults:
-  - train_transforms: default
-  - val_transforms: default
+  - train_transforms@data.train_transforms: default
+  - val_transforms@data.val_transforms: default
   - _self_
 
 experiment_name: Loaders
+seed: 42
 warmup:
   enabled: True
   epochs: 3
@@ -35,6 +36,8 @@ model:
   dropout: 0.5
 data:
   n_classes: 50
+  split_seed: 42
+  train_perc: 1.0
   valid_size: 0.15
   dataloader:
     batch_size: 32
